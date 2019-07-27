@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 
 def generate_spiral(n, d, k, show=False):
     '''
+    Taken from http://cs231n.github.io/
     n number of points per class
     d dimensionality
     k number of classes
@@ -82,16 +83,15 @@ def relu_grad(x):
     return np.piecewise(x, [x < 0, x >= 0], [0, 1])
 
 def softmax_colwise(x):
-    return np.exp(x)/np.sum(np.exp(x), axis=0)
+    'softmax for col-wise examples'
+    max_x = np.max(x, axis=0, keepdims=True) # (1, n_examples)
+    return np.exp(x-max_x)/np.sum(np.exp(x-max_x), axis=0)
 
 def softmax(x):
     'softmax for row-wise examples'
-    return np.exp(x)*(1/np.vstack([np.sum(np.exp(x),axis=1)]*x.shape[1]).T)
-#
-# def softmax(x):
-#     'softmax for row-wise examples'
-#     max_x = np.max(x, axis=1)
-#     return np.exp(x-max_x)/np.vstack([np.sum(np.exp(x-max_x),axis=1)]*x.shape[1]).T
+    max_x = np.max(x, axis=1, keepdims=True) # (n_examples, 1)
+    return (np.exp(x-max_x).T*(1/np.sum(np.exp(x-max_x), axis=1))).T
+
 
 class MLP:
 
@@ -100,6 +100,11 @@ class MLP:
         self.wdims = [(layer_sizes[i],layer_sizes[i+1]) for i in range(self.n_layers)]
         self.weights = [np.sqrt(2/wd[0])*randn(wd[0], wd[1]) for wd in self.wdims]
         self.biases = [np.zeros(wd[1]) for wd in self.wdims]
+        ## the following alternative initialization shows that you can optimize
+        ## a neural network even if all weights have been initialized to 0
+        ## but only if biases are initialized randomly
+        # self.weights = [np.zeros((wd[0], wd[1])) for wd in self.wdims]
+        # self.biases = [randn(wd[1]) for wd in self.wdims]
         self.activations = [relu for _ in range(self.n_layers-1)] + [softmax]
         self.lr = hyperparam_dict['lr']
 
@@ -167,5 +172,8 @@ class MLP:
             self.weights[layer_i] = self.weights[layer_i] - self.lr * dws[layer_i]
             self.biases[layer_i] = self.biases[layer_i] - self.lr * dbs[layer_i]
 
-    def loss(self, mb_output, mb_ys):
-        return -np.mean(np.log(mb_output[np.arange(len(mb_output)), mb_ys]))
+    def loss(self, output, ys):
+        return -np.mean(np.log(output[np.arange(len(output)), ys]))
+
+    def accuracy(self, output, ys):
+        return 100*np.sum(np.argmax(output, axis=1) == ys)/len(output)
