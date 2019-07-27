@@ -1,0 +1,1 @@
+Implementing a feedforward neural from scratch in numpy.
