@@ -1,3 +1,4 @@
+from MLP import MLP
 from utils import *
 
 # build dataset
